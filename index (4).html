@@ -1,0 +1,1271 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediLens - Affordable Medicine & Kendra Finder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        body{
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to bottom, #2c2c2c, #eae6ef);
+            margin: 0;
+            padding: 0;
+        }
+
+        .logo-text {
+            font-family: 'Pacifico', cursive;
+            background: linear-gradient(90deg, #4f46e5, #959295);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #7192b4, #171718 50%, #b7d9ef);
+        }
+
+        .card-hover {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+        }
+
+        /* Buttons */
+        .btn-primary,
+        .btn-secondary {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            cursor: pointer;
+            border-radius: 9999px;
+            color: #fff;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(90deg, #10b981, #34d399);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Animations */
+        .voice-btn {
+            animation: voicePulse 1.5s infinite;
+        }
+
+        @keyframes voicePulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .listening {
+            animation: listeningPulse 1s infinite alternate;
+        }
+
+        @keyframes listeningPulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+
+        /* Hero & Section Backgrounds */
+        .hero-section {
+            background: url('https://cdn.pixabay.com/photo/2020/06/06/21/19/drugs-5268287_1280.jpg') center/cover no-repeat;
+            position: relative;
+            z-index: 0;
+        }
+
+        .why-choose-section {
+            background: url('https://imgs.search.brave.com/6j00gkcuozDPLqkUQHlESUkPhgIXefIjXkKwU2DzHWk/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMTEz/NDM1MzQ0OC9waG90/by9waGFybWFjeS5q/cGc_cz02MTJ4NjEy/Jnc9MCZrPTIwJmM9/NjRVVE42RllYRTln/b0xodl94bUlaTWxM/eENQeXU2MUdid3hr/VTlmOTRoWT0') center/cover no-repeat;
+            position: relative;
+            z-index: 0;
+        }
+
+        .hero-section::before,
+        .why-choose-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 1;
+        }
+
+        .hero-section > *,
+        .why-choose-section > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        .search-card {
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            position: relative;
+            overflow: hidden;
+            z-index: 2;
+        }
+
+        .search-card::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(135deg, #060606, #efebf0);
+            z-index: -1;
+        }
+
+        /* Inputs & Autocomplete */
+        .search-input {
+            font-weight: 600;
+            padding: 1rem 2.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 9999px;
+            width: 100%;
+        }
+
+        .search-input:focus {
+            border-color: #504f60;
+            outline: none;
+            box-shadow: 0 0 0 4px #a39ff3;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(79, 70, 229, 0.3);
+            border-radius: 0.5rem;
+            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.2);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .autocomplete-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            color: #1f2937;
+            transition: background-color 0.2s ease;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.active {
+            background-color: rgba(79, 70, 229, 0.3);
+            font-weight: 500;
+        }
+
+        /* Text Selection for Scan */
+        .text-item {
+            padding: 0.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .text-item:hover,
+        .text-item.selected {
+            background-color: rgba(79, 70, 229, 0.1);
+            border-color: #4f46e5;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            font-size: 0.875rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        @media (max-width: 640px) {
+            th, td {
+                font-size: 0.75rem;
+                padding: 0.5rem;
+            }
+        }
+
+        /* Section Highlights */
+        .why-choose-section h2 {
+            color: #1e40af;
+        }
+
+        .why-choose-section h3 {
+            color: #b91c1c;
+        }
+
+        .why-choose-section p {
+            color: #4b5563;
+        }
+
+        .bg-indigo-100 .text-indigo-600 {
+            background-color: rgba(79, 70, 229, 0.1);
+            color: #4f46e5;
+        }
+
+        .bg-green-100 .text-green-600 {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+
+        .bg-purple-100 .text-purple-600 {
+            background-color: rgba(124, 58, 237, 0.1);
+            color: #7c3aed;
+        }
+
+        /* Gradient Bars */
+        .bg-gradient-to-r.from-indigo-500.to-purple-500 {
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+        }
+
+        .bg-gradient-to-r.from-green-500.to-teal-500 {
+            background: linear-gradient(90deg, #10b981, #34d399);
+        }
+
+        .bg-gradient-to-r.from-purple-500.to-pink-500 {
+            background: linear-gradient(90deg, #7c3aed, #c026d3);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="hero-gradient text-white py-4 shadow-lg">
+        <div class="container mx-auto px-4 sm:px-6 flex justify-between items-center">
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                </svg>
+                <h1 class="text-2xl sm:text-3xl font-bold logo-text animate__animated animate__fadeIn">MediLens</h1>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="#" class="text-white hover:text-indigo-200 transition text-sm">Home</a>
+                <a href="#" class="text-white hover:text-indigo-200 transition text-sm">About</a>
+                <a href="#" class="text-white hover:text-indigo-200 transition text-sm">How It Works</a>
+                <a href="#" class="text-white hover:text-indigo-200 transition text-sm">Contact</a>
+            </nav>
+            <button id="mobileMenuBtn" class="md:hidden text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+        <div id="mobileMenu" class="mobile-menu hidden md:hidden bg-indigo-700 text-white">
+            <ul class="flex flex-col items-center py-4 space-y-4">
+                <li><a href="#" class="text-white hover:text-indigo-200 transition text-base">Home</a></li>
+                <li><a href="#" class="text-white hover:text-indigo-200 transition text-base">About</a></li>
+                <li><a href="#" class="text-white hover:text-indigo-200 transition text-base">How It Works</a></li>
+                <li><a href="#" class="text-white hover:text-indigo-200 transition text-base">Contact</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="py-8 sm:py-16 px-4 bg-gradient-to-b from-indigo-50 to-purple-50">
+        <div class="container mx-auto text-center">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-gray-800 animate__animated animate__fadeInUp">
+                Find Affordable Medicines & Kendras
+            </h2>
+            <p class="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-6 sm:mb-10 animate__animated animate__fadeInUp animate__delay-1s">
+                Save up to 80% on medical expenses with generic medicines and locate nearby Jan Aushadhi Kendras
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto">
+                <!-- Medicine Search Section -->
+                <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 glass-effect animate__animated animate__fadeInUp animate__delay-2s">
+                    <h3 class="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-gray-800">Search Medicines</h3>
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-3 sm:mb-4 relative">
+                        <div class="relative flex-grow">
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input
+                                type="text"
+                                id="searchInput"
+                                placeholder="Search medicines or conditions (e.g., cold fever)"
+                                class="w-full p-3 sm:p-4 pl-10 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-gray-700 placeholder-gray-400 shadow-sm text-sm sm:text-base"
+                                autocomplete="off"
+                            />
+                            <button
+                                id="micBtn"
+                                class="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 bg-green-500 text-white p-2 rounded-full flex items-center justify-center voice-btn"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4 sm:h-5 sm:w-5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                                    />
+                                </svg>
+                            </button>
+                            <div id="autocompleteDropdown" class="autocomplete-dropdown hidden"></div>
+                        </div>
+                        <button
+                            id="searchBtn"
+                            class="btn-primary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium text-sm sm:text-base whitespace-nowrap"
+                        >
+                            Search Medicine
+                        </button>
+                    </div>
+                    <div class="mt-4 sm:mt-6">
+                        <button
+                            id="scanButton"
+                            class="flex items-center justify-center mx-auto bg-white text-indigo-600 px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium border-2 border-indigo-100 hover:border-indigo-300 transition shadow-sm text-sm sm:text-base"
+                        >
+                            <svg
+                                class="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                            </svg>
+                            Scan Medicine Label
+                        </button>
+                        <input
+                            type="file"
+                            id="cameraInput"
+                            accept="image/*"
+                            capture="environment"
+                            style="display: none;"
+                        />
+                    </div>
+                </div>
+                <!-- Kendra Search Section -->
+                <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 glass-effect animate__animated animate__fadeInUp animate__delay-2s">
+                    <h3 class="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-gray-800">Search Kendras</h3>
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-3 sm:mb-4">
+                        <input
+                            type="text"
+                            id="pinCodeInput"
+                            placeholder="Enter your pin code (e.g., 208011)"
+                            class="w-full p-3 sm:p-4 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-gray-700 placeholder-gray-400 shadow-sm text-sm sm:text-base"
+                        />
+                        <button
+                            id="findKendraButton"
+                            class="btn-secondary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium text-sm sm:text-base whitespace-nowrap"
+                        >
+                            Find Kendras
+                        </button>
+                    </div>
+                    <div class="mt-4 sm:mt-6">
+                        <p class="text-gray-600 text-xs sm:text-sm text-center">
+                            Enter a 6-digit pin code to locate nearby Jan Aushadhi Kendras.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="max-w-5xl mx-auto mt-4 sm:mt-6">
+                <p id="status" class="text-gray-600 text-xs sm:text-sm text-center"></p>
+                <p class="mt-2 text-red-600 text-xs sm:text-sm font-medium text-center">
+                    Disclaimer: The data provided is based on online sources and may not reflect real-time availability or pricing. Please verify with local pharmacies.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Sections -->
+    <div class="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <div id="kendraResults" class="hidden mb-8 sm:mb-12">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">Nearby Jan Aushadhi Kendras</h2>
+                <button id="downloadKendraPdfBtn" class="btn-primary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium flex items-center text-sm sm:text-base">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                    </svg>
+                    Download Kendra PDF
+                </button>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg overflow-x-auto">
+                <table class="w-full text-gray-800">
+                    <thead class="bg-gradient-to-r from-green-600 to-teal-600 text-white">
+                        <tr>
+                            <th class="p-3 sm:p-4 text-left rounded-tl-xl">Name</th>
+                            <th class="p-3 sm:p-4 text-left">Contact</th>
+                            <th class="p-3 sm:p-4 text-left">Pin Code</th>
+                            <th class="p-3 sm:p-4 text-left">Address</th>
+                            <th class="p-3 sm:p-4 text-left">Kendra Code</th>
+                            <th class="p-3 sm:p-4 text-left rounded-tr-xl">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kendraTable" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+        <div id="results" class="hidden mb-8 sm:mb-12">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">Medicine Substitutes</h2>
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <select id="resultsKendraSelect" class="p-2 rounded-lg border border-gray-200 text-gray-700 text-sm sm:text-base">
+                        <option value="">Select a Kendra Location</option>
+                    </select>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg overflow-x-auto">
+                <table class="w-full text-gray-800">
+                    <thead class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+                        <tr>
+                            <th class="p-3 sm:p-4 text-left rounded-tl-xl">Medicine Name</th>
+                            <th class="p-3 sm:p-4 text-left">Pack Size</th>
+                            <th class="p-3 sm:p-4 text-left">Generic Price</th>
+                            <th class="p-3 sm:p-4 text-left">Category</th>
+                            <th class="p-3 sm:p-4 text-left">Branded Substitutes</th>
+                            <th class="p-3 sm:p-4 text-left">Branded Price</th>
+                            <th class="p-3 sm:p-4 text-left">Savings</th>
+                            <th class="p-3 sm:p-4 text-left rounded-tr-xl">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="medicineTable" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+        <div id="cartSection" class="hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">Your Cart</h2>
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <select id="cartKendraSelect" class="p-2 rounded-lg border border-gray-200 text-gray-700 text-sm sm:text-base">
+                        <option value="">Select a Kendra</option>
+                    </select>
+                    <button id="checkAvailabilityBtn" class="btn-secondary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium text-sm sm:text-base">Check Availability</button>
+                    <button id="downloadCartPdfBtn" class="btn-primary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium flex items-center text-sm sm:text-base">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                        </svg>
+                        Download Cart PDF
+                    </button>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-gray-800">
+                        <thead class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
+                            <tr>
+                                <th class="p-3 sm:p-4 text-left rounded-tl-xl">Medicine Name</th>
+                                <th class="p-3 sm:p-4 text-left">Generic Price</th>
+                                <th class="p-3 sm:p-4 text-left">Branded Price</th>
+                                <th class="p-3 sm:p-4 text-left">Savings</th>
+                                <th class="p-3 sm:p-4 text-left">Availability</th>
+                                <th class="p-3 sm:p-4 text-left rounded-tr-xl">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cartTable" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+                <div class="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                        <div>
+                            <h3 class="text-lg sm:text-xl font-semibold text-gray-800">Total Savings</h3>
+                            <p id="totalSavings" class="text-xl sm:text-2xl font-bold text-green-600">₹0.00</p>
+                        </div>
+                        <button id="clearCartBtn" class="text-red-500 hover:text-red-700 font-medium text-sm sm:text-base mt-4 sm:mt-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6 inline mr-1" fill="none" viewBox="0 0 24  lamented 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Clear Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  <!-- Why Choose MediLens Section -->
+  <section class="py-12 sm:py-16 px-4 bg-gradient-to-b from-gray-50 to-indigo-50">
+    <div class="container mx-auto text-center">
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-8 sm:mb-12 text-gray-800 animate__animated animate__fadeInUp">
+            Why Choose <span class="logo-text">MediLens</span>?
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
+            <!-- Card 1: Accurate Substitutes -->
+            <div class="card-hover bg-white rounded-2xl shadow-xl p-6 sm:p-8 glass-effect relative overflow-hidden transform hover:scale-105 transition-transform duration-300 animate__animated animate__fadeInUp animate__delay-1s">
+                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+                <div class="flex justify-center mb-5">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-100 rounded-full flex items-center justify-center transform hover:rotate-12 transition-transform duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-10 sm:w-10 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="text-xl sm:text-2xl font-semibold mb-3 text-gray-800">Accurate Substitutes</h3>
+                <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
+                    Discover scientifically equivalent generic medicines that match the effectiveness of branded options.
+                </p>
+            </div>
+            <!-- Card 2: Huge Savings -->
+            <div class="card-hover bg-white rounded-2xl shadow-xl p-6 sm:p-8 glass-effect relative overflow-hidden transform hover:scale-105 transition-transform duration-300 animate__animated animate__fadeInUp animate__delay-2s">
+                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-500 to-teal-500"></div>
+                <div class="flex justify-center mb-5">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center transform hover:rotate-12 transition-transform duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-10 sm:w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-9c-1.657 0-3 .895-3 2s1.343 2 3 2m-3-4c0-1.11.402-2.08 1-2.599M12 16v1m0 0c-1.11 0-2.08-.402-2.599-1M12 16c1.657 0 3-.895 3-2s-1.343-2-3-2m3 4c0 1.11-.402 2.08-1 2.599" />
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="text-xl sm:text-2xl font-semibold mb-3 text-gray-800">Huge Savings</h3>
+                <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
+                    Slash your medical bills by 50-80% with cost-effective generic alternatives.
+                </p>
+            </div>
+            <!-- Card 3: Kendra Locator -->
+            <div class="card-hover bg-white rounded-2xl shadow-xl p-6 sm:p-8 glass-effect relative overflow-hidden transform hover:scale-105 transition-transform duration-300 animate__animated animate__fadeInUp animate__delay-3s">
+                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 to-pink-500"></div>
+                <div class="flex justify-center mb-5">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-purple-100 rounded-full flex items-center justify-center transform hover:rotate-12 transition-transform duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-10 sm:w-10 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="text-xl sm:text-2xl font-semibold mb-3 text-gray-800">Kendra Locator</h3>
+                <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
+                    Easily find nearby Jan Aushadhi Kendras to purchase affordable medicines.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+    <!-- Scan Preview Modal -->
+    <div id="scanModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-4 sm:p-6 w-full max-w-xs sm:max-w-md mx-4">
+            <div class="flex justify-between items-center mb-3 sm:mb-4">
+                <h3 class="text-lg sm:text-xl font-bold text-gray-800">Scan Medicine Label</h3>
+                <button id="closeScanModal" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <img id="scanPreview" class="w-full rounded-lg mb-3 sm:mb-4" alt="Scan Preview">
+            <div id="loadingIndicator" class="text-center py-3 sm:py-4 hidden">
+                <svg class="animate-spin inline-block w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="mt-1 sm:mt-2 text-gray-600 text-sm sm:text-base">Scanning medicine label...</p>
+            </div>
+            <div class="flex justify-end">
+                <button id="retryScanBtn" class="mr-2 px-3 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 text-sm sm:text-base">Retry</button>
+                <button id="useScanBtn" class="px-3 sm:px-4 py-1 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm sm:text-base">Use This Scan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 sm:py-12">
+        <div class="container mx-auto px-4 sm:px-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+                <div>
+                    <h3 class="text-lg sm:text-xl font-bold mb-3 sm:mb-4 logo-text">MediLens</h3>
+                    <p class="text-gray-400 text-sm sm:text-base">Making healthcare accessible through Jan Aushadhi Kendra locator.</p>
+                </div>
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition text-sm sm:text-base">Home</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition text-sm sm:text-base">About Us</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition text-sm sm:text-base">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition text-sm sm:text-base">Jan Aushadhi Scheme</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition text-sm sm:text-base">FAQ</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Contact Us</h4>
+                    <ul class="space-y-2">
+                        <li class="flex items-center text-gray-400 text-sm sm:text-base">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            +91 8423355398
+                        </li>
+                        <li class="flex items-center text-gray-400 text-sm sm:text-base">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <a href="mailto:support@medilens.com">support@medilens.com</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-6 sm:mt-8 pt-6 sm:pt-8 text-center text-gray-400">
+                <p class="text-sm sm:text-base">Powered by Logicloards</p>
+                <p class="text-sm sm:text-base mt-2">© 2025 MediLens. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+
+        // Sample Data
+        const kendras = [
+            { srNo: 1, kendraCode: "PMBJK02453", name: "Sujeet Kumar Mishra", contact: "8887959431", pinCode: "208011", address: "Jan Aushadhi Medical Store 128367 H Block Kidwai Nagar Kanpur Nagar (UP) 208011" },
+            { srNo: 2, kendraCode: "PMBJK02454", name: "Amit Singh", contact: "9876543210", pinCode: "208011", address: "Jan Aushadhi Kendra, 45/2 Barra, Kanpur Nagar (UP) 208011" },
+        ];
+
+        const medicines = [
+            { medicineName: "Aceclofenac 100mg Tablets", packSize: "10's", priceINR: 10.0, category: "Analgesic", cause: "Pain, Inflammation", genericSubstitutes: "Zerodol (Cipla), Hifenac (Intas)", brandedPriceINR: "40-50" },
+            { medicineName: "Paracetamol 500mg Tablets", packSize: "10's", priceINR: 5.0, category: "Antipyretic", cause: "Fever, Pain", genericSubstitutes: "Dolo (Micro Labs), Calpol (GSK)", brandedPriceINR: "15-20" },
+            { medicineName: "Amlodipine 5mg Tablets", packSize: "10's", priceINR: 8.0, category: "Antihypertensive", cause: "High Blood Pressure", genericSubstitutes: "Amlong (Micro Labs), Stamlo (Dr. Reddy's)", brandedPriceINR: "25-30" },
+            { medicineName: "Cetirizine 10mg Tablets", packSize: "10's", priceINR: 4.0, category: "Antihistamine", cause: "Allergies", genericSubstitutes: "Zyrtec (UCB), Cetzine (GSK)", brandedPriceINR: "15-25" },
+            { medicineName: "Omeprazole 20mg Capsules", packSize: "10's", priceINR: 10.0, category: "Proton Pump Inhibitor", cause: "Acidity, GERD", genericSubstitutes: "Omez (Dr. Reddy's), Omecip (Cipla)", brandedPriceINR: "40-50" },
+            { medicineName: "Losartan 50mg Tablets", packSize: "10's", priceINR: 15.0, category: "Antihypertensive", cause: "High Blood Pressure", genericSubstitutes: "Losar (Unichem), Repace (Sun Pharma)", brandedPriceINR: "50-60" },
+            { medicineName: "Diclofenac 50mg Tablets", packSize: "10's", priceINR: 8.0, category: "Analgesic", cause: "Pain, Inflammation", genericSubstitutes: "Voveran (Novartis), Dynapar (Troikaa)", brandedPriceINR: "30-40" },
+            { medicineName: "Ibuprofen 400mg Tablets", packSize: "10's", priceINR: 6.0, category: "Analgesic", cause: "Pain, Fever", genericSubstitutes: "Brufen (Abbott), Ibugesic (Cipla)", brandedPriceINR: "20-30" },
+            { medicineName: "Salbutamol 4mg Tablets", packSize: "10's", priceINR: 5.0, category: "Bronchodilator", cause: "Asthma", genericSubstitutes: "Asthalin (Cipla), Salbair (Lupin)", brandedPriceINR: "15-25" },
+            { medicineName: "Azithromycin 500mg Tablets", packSize: "3's", priceINR: 20.0, category: "Antibiotic", cause: "Bacterial Infections", genericSubstitutes: "Azithral (Alembic), Zithromax (Pfizer)", brandedPriceINR: "60-80" },
+            { medicineName: "Amoxicillin 500mg Capsules", packSize: "10's", priceINR: 25.0, category: "Antibiotic", cause: "Bacterial Infections", genericSubstitutes: "Himox (GSK), Mox (Sun Pharma)", brandedPriceINR: "70-90" },
+            { medicineName: "Cefixime 200mg Tablets", packSize: "10's", priceINR: 30.0, category: "Antibiotic", cause: "Bacterial Infections", genericSubstitutes: "Cefoprox (Cipla), Taxim-O (Alkem)", brandedPriceINR: "100-120" },
+            { medicineName: "Levothyroxine 50mcg Tablets", packSize: "100's", priceINR: 50.0, category: "Thyroid Hormone", cause: "Hypothyroidism", genericSubstitutes: "Thyronorm (Abbott), Eltroxin (GSK)", brandedPriceINR: "120-150" },
+            { medicineName: "Pantoprazole 40mg Tablets", packSize: "10's", priceINR: 12.0, category: "Proton Pump Inhibitor", cause: "Acidity, Ulcers", genericSubstitutes: "Pantocid (Sun Pharma), Pan (Alkem)", brandedPriceINR: "40-50" },
+            { medicineName: "Glibenclamide 5mg Tablets", packSize: "10's", priceINR: 6.0, category: "Antidiabetic", cause: "Diabetes", genericSubstitutes: "Daonil (Sanofi), Glucored (Sun Pharma)", brandedPriceINR: "20-30" },
+            { medicineName: "Aspirin 75mg Tablets", packSize: "14's", priceINR: 4.0, category: "Antiplatelet", cause: "Heart Attack Prevention", genericSubstitutes: "Ecosprin (USV), Disprin (Reckitt)", brandedPriceINR: "10-15" },
+            { medicineName: "Montelukast 10mg Tablets", packSize: "10's", priceINR: 15.0, category: "Antiallergic", cause: "Asthma, Allergies", genericSubstitutes: "Montair (Cipla), Singulair (MSD)", brandedPriceINR: "50-60" },
+            { medicineName: "Telmisartan 40mg Tablets", packSize: "10's", priceINR: 18.0, category: "Antihypertensive", cause: "High Blood Pressure", genericSubstitutes: "Telmikind (Mankind), Telma (Glenmark)", brandedPriceINR: "60-70" },
+            { medicineName: "Hydrochlorothiazide 25mg Tablets", packSize: "10's", priceINR: 8.0, category: "Diuretic", cause: "Hypertension, Edema", genericSubstitutes: "Aquazide (Sun Pharma), Hydride (Micro Labs)", brandedPriceINR: "25-35" },
+            { medicineName: "Clopidogrel 75mg Tablets", packSize: "10's", priceINR: 20.0, category: "Antiplatelet", cause: "Heart Attack Prevention", genericSubstitutes: "Clopilet (Sun Pharma), Plavix (Sanofi)", brandedPriceINR: "70-90" },
+            { medicineName: "Ranitidine 150mg Tablets", packSize: "10's", priceINR: 5.0, category: "H2 Blocker", cause: "Acidity, Ulcers", genericSubstitutes: "Rantac (JB Chemicals), Zinetac (GSK)", brandedPriceINR: "15-20" },
+            { medicineName: "Levocetirizine 5mg Tablets", packSize: "10's", priceINR: 6.0, category: "Antihistamine", cause: "Allergies", genericSubstitutes: "Levocet (Glenmark), Xyzal (UCB)", brandedPriceINR: "20-30" },
+            { medicineName: "Doxycycline 100mg Capsules", packSize: "10's", priceINR: 15.0, category: "Antibiotic", cause: "Bacterial Infections", genericSubstitutes: "Doxicycline (Cipla), Doryx (Pfizer)", brandedPriceINR: "50-60" },
+            { medicineName: "Furosemide 40mg Tablets", packSize: "10's", priceINR: 7.0, category: "Diuretic", cause: "Edema, Hypertension", genericSubstitutes: "Lasix (Sanofi), Frusenex (Genix)", brandedPriceINR: "20-30" },
+            { medicineName: "Bisoprolol 5mg Tablets", packSize: "10's", priceINR: 10.0, category: "Beta Blocker", cause: "Hypertension, Heart Failure", genericSubstitutes: "Concor (Merck), Bisoheart (Mankind)", brandedPriceINR: "40-50" },
+            { medicineName: "Domperidone 10mg Tablets", packSize: "10's", priceINR: 5.0, category: "Antiemetic", cause: "Nausea, Vomiting", genericSubstitutes: "Domstal (Torrent), Motilium (Janssen)", brandedPriceINR: "15-20" },
+            { medicineName: "Tramadol 50mg Capsules", packSize: "10's", priceINR: 12.0, category: "Analgesic", cause: "Moderate Pain", genericSubstitutes: "Tramazac (Zydus), Ultram (Janssen)", brandedPriceINR: "40-50" },
+            { medicineName: "Ciprofloxacin 500mg Tablets", packSize: "10's", priceINR: 20.0, category: "Antibiotic", cause: "Bacterial Infections", genericSubstitutes: "Ciplox (Cipla), Cifran (Sun Pharma)", brandedPriceINR: "60-80" },
+            { medicineName: "Simvastatin 20mg Tablets", packSize: "10's", priceINR: 15.0, category: "Lipid-Lowering", cause: "High Cholesterol", genericSubstitutes: "Simvotin (Sun Pharma), Zocor (Merck)", brandedPriceINR: "50-60" },
+            { medicineName: "Gabapentin 300mg Capsules", packSize: "10's", priceINR: 25.0, category: "Anticonvulsant", cause: "Neuropathic Pain, Seizures", genericSubstitutes: "Gabantin (Sun Pharma), Neurontin (Pfizer)", brandedPriceINR: "80-100" },
+            { medicineName: "Ondansetron 4mg Tablets", packSize: "10's", priceINR: 10.0, category: "Antiemetic", cause: "Nausea, Vomiting", genericSubstitutes: "Emeset (Cipla), Zofran (GSK)", brandedPriceINR: "40-50" },
+            { medicineName: "Fluconazole 150mg Tablets", packSize: "1's", priceINR: 10.0, category: "Antifungal", cause: "Fungal Infections", genericSubstitutes: "Forcan (Cipla), Diflucan (Pfizer)", brandedPriceINR: "30-40" },
+            { medicineName: "Pregabalin 75mg Capsules", packSize: "10's", priceINR: 20.0, category: "Anticonvulsant", cause: "Neuropathic Pain", genericSubstitutes: "Pregaba (Torrent), Lyrica (Pfizer)", brandedPriceINR: "70-90" }
+           
+        ];
+
+        const kendraAvailability = {
+            "PMBJK02453": ["Aceclofenac 100mg Tablets", "Paracetamol 500mg Tablets"],
+            "PMBJK02454": ["Paracetamol 500mg Tablets", "Amlodipine 5mg Tablets"],
+        };
+
+        // Cart Management
+        let cart = [];
+        let selectedKendra = null;
+        let filteredKendras = [];
+
+        // DOM Elements
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const micBtn = document.getElementById('micBtn');
+        const pinCodeInput = document.getElementById('pinCodeInput');
+        const findKendraButton = document.getElementById('findKendraButton');
+        const status = document.getElementById('status');
+        const scanButton = document.getElementById('scanButton');
+        const cameraInput = document.getElementById('cameraInput');
+        const scanModal = document.getElementById('scanModal');
+        const scanPreview = document.getElementById('scanPreview');
+        const closeScanModal = document.getElementById('closeScanModal');
+        const retryScanBtn = document.getElementById('retryScanBtn');
+        const useScanBtn = document.getElementById('useScanBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const kendraResults = document.getElementById('kendraResults');
+        const kendraTable = document.getElementById('kendraTable');
+        const results = document.getElementById('results');
+        const medicineTable = document.getElementById('medicineTable');
+        const resultsKendraSelect = document.getElementById('resultsKendraSelect');
+        const cartSection = document.getElementById('cartSection');
+        const cartTable = document.getElementById('cartTable');
+        const totalSavings = document.getElementById('totalSavings');
+        const clearCartBtn = document.getElementById('clearCartBtn');
+        const downloadCartPdfBtn = document.getElementById('downloadCartPdfBtn');
+        const downloadKendraPdfBtn = document.getElementById('downloadKendraPdfBtn');
+        const cartKendraSelect = document.getElementById('cartKendraSelect');
+        const checkAvailabilityBtn = document.getElementById('checkAvailabilityBtn');
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+
+        // Mobile Menu Toggle
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Voice Recognition Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'en-IN';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                searchInput.value = transcript;
+                status.textContent = 'Voice input received: ' + transcript;
+                micBtn.classList.remove('listening');
+                searchMedicines(transcript);
+            };
+
+            recognition.onerror = (event) => {
+                status.textContent = 'Error occurred in recognition: ' + event.error;
+                micBtn.classList.remove('listening');
+            };
+
+            recognition.onend = () => {
+                micBtn.classList.remove('listening');
+            };
+        }
+
+        // Autocomplete Functionality
+        let activeSuggestionIndex = -1;
+
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.trim().toLowerCase();
+            if (query.length < 2) {
+                autocompleteDropdown.classList.add('hidden');
+                autocompleteDropdown.innerHTML = '';
+                return;
+            }
+
+            const suggestions = medicines.filter(med =>
+                med.medicineName.toLowerCase().includes(query) ||
+                med.cause.toLowerCase().includes(query) ||
+                med.category.toLowerCase().includes(query) ||
+                med.genericSubstitutes.toLowerCase().includes(query)
+            ).slice(0, 5);
+
+            if (suggestions.length === 0) {
+                autocompleteDropdown.classList.add('hidden');
+                autocompleteDropdown.innerHTML = '';
+                return;
+            }
+
+            autocompleteDropdown.innerHTML = suggestions.map((med, index) => `
+                <div class="autocomplete-item ${index === activeSuggestionIndex ? 'active' : ''}" data-index="${index}" data-value="${med.medicineName}">
+                    ${med.medicineName} <span class="text-gray-400 text-xs">(${med.category})</span>
+                </div>
+            `).join('');
+            autocompleteDropdown.classList.remove('hidden');
+
+            document.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    searchInput.value = item.dataset.value;
+                    autocompleteDropdown.classList.add('hidden');
+                    searchMedicines(item.dataset.value);
+                });
+            });
+        });
+
+        searchInput.addEventListener('keydown', (event) => {
+            const items = document.querySelectorAll('.autocomplete-item');
+            if (items.length === 0) return;
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                activeSuggestionIndex = Math.min(activeSuggestionIndex + 1, items.length - 1);
+                updateActiveSuggestion(items);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                activeSuggestionIndex = Math.max(activeSuggestionIndex - 1, -1);
+                updateActiveSuggestion(items);
+            } else if (event.key === 'Enter' && activeSuggestionIndex >= 0) {
+                event.preventDefault();
+                searchInput.value = items[activeSuggestionIndex].dataset.value;
+                autocompleteDropdown.classList.add('hidden');
+                searchMedicines(searchInput.value);
+            } else if (event.key === 'Escape') {
+                autocompleteDropdown.classList.add('hidden');
+                activeSuggestionIndex = -1;
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!searchInput.contains(event.target) && !autocompleteDropdown.contains(event.target)) {
+                autocompleteDropdown.classList.add('hidden');
+                activeSuggestionIndex = -1;
+            }
+        });
+
+        function updateActiveSuggestion(items) {
+            items.forEach((item, index) => {
+                item.classList.toggle('active', index === activeSuggestionIndex);
+            });
+            if (activeSuggestionIndex >= 0) {
+                items[activeSuggestionIndex].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        // Event Listeners
+        searchBtn.addEventListener('click', () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                autocompleteDropdown.classList.add('hidden');
+                searchMedicines(query);
+            } else {
+                status.textContent = 'Please enter a medicine or condition';
+            }
+        });
+
+        micBtn.addEventListener('click', () => {
+            if (SpeechRecognition) {
+                micBtn.classList.add('listening');
+                status.textContent = 'Listening...';
+                autocompleteDropdown.classList.add('hidden');
+                recognition.start();
+            } else {
+                status.textContent = 'Speech recognition not supported in this browser';
+            }
+        });
+
+        findKendraButton.addEventListener('click', () => {
+            const pinCode = pinCodeInput.value.trim();
+            if (/^\d{6}$/.test(pinCode)) {
+                displayKendras(pinCode);
+            } else {
+                status.textContent = 'Please enter a valid 6-digit pin code';
+            }
+        });
+
+        scanButton.addEventListener('click', () => {
+            cameraInput.click();
+        });
+
+        cameraInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    scanPreview.src = e.target.result;
+                    scanModal.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        closeScanModal.addEventListener('click', () => {
+            scanModal.classList.add('hidden');
+            cameraInput.value = '';
+        });
+
+        retryScanBtn.addEventListener('click', () => {
+            scanModal.classList.add('hidden');
+            cameraInput.value = '';
+            cameraInput.click();
+        });
+
+        useScanBtn.addEventListener('click', () => {
+            loadingIndicator.classList.remove('hidden');
+            Tesseract.recognize(
+                scanPreview.src,
+                'eng',
+                { logger: (m) => console.log(m) }
+            ).then(({ data: { text } }) => {
+                loadingIndicator.classList.add('hidden');
+                scanModal.classList.add('hidden');
+                searchInput.value = text;
+                status.textContent = 'Text extracted from image';
+                searchMedicines(text);
+            }).catch((err) => {
+                loadingIndicator.classList.add('hidden');
+                status.textContent = 'Error processing image: ' + err.message;
+            });
+        });
+
+        clearCartBtn.addEventListener('click', () => {
+            cart = [];
+            updateCart();
+        });
+
+        downloadCartPdfBtn.addEventListener('click', generateCartPDF);
+        downloadKendraPdfBtn.addEventListener('click', generateKendraPDF);
+
+        checkAvailabilityBtn.addEventListener('click', () => {
+            const kendraCode = cartKendraSelect.value;
+            if (!kendraCode) {
+                status.textContent = 'Please select a Kendra';
+                return;
+            }
+            if (cart.length === 0) {
+                status.textContent = 'Cart is empty';
+                return;
+            }
+            selectedKendra = kendras.find(k => k.kendraCode === kendraCode);
+            updateCart();
+            status.textContent = `Availability checked for ${selectedKendra.name}`;
+        });
+
+        resultsKendraSelect.addEventListener('change', () => {
+            const kendraCode = resultsKendraSelect.value;
+            if (kendraCode) {
+                selectedKendra = kendras.find(k => k.kendraCode === kendraCode);
+                status.textContent = `Selected Kendra: ${selectedKendra.name}`;
+                cartKendraSelect.value = kendraCode;
+            } else {
+                selectedKendra = null;
+                status.textContent = 'No Kendra selected';
+                cartKendraSelect.value = '';
+            }
+            updateCart();
+        });
+
+        cartKendraSelect.addEventListener('change', () => {
+            const kendraCode = cartKendraSelect.value;
+            if (kendraCode) {
+                selectedKendra = kendras.find(k => k.kendraCode === kendraCode);
+                status.textContent = `Selected Kendra: ${selectedKendra.name}`;
+                resultsKendraSelect.value = kendraCode;
+            } else {
+                selectedKendra = null;
+                status.textContent = 'No Kendra selected';
+                resultsKendraSelect.value = '';
+            }
+            updateCart();
+        });
+
+        // Functions
+        function searchMedicines(query) {
+            const filteredMedicines = medicines.filter(med =>
+                med.medicineName.toLowerCase().includes(query.toLowerCase()) ||
+                med.cause.toLowerCase().includes(query.toLowerCase()) ||
+                med.category.toLowerCase().includes(query.toLowerCase()) ||
+                med.genericSubstitutes.toLowerCase().includes(query.toLowerCase())
+            );
+            displayMedicines(filteredMedicines);
+        }
+
+        function displayMedicines(medicines) {
+            medicineTable.innerHTML = '';
+            if (medicines.length === 0) {
+                results.classList.add('hidden');
+                status.textContent = 'No medicines found';
+                return;
+            }
+            results.classList.remove('hidden');
+            medicines.forEach(med => {
+                const avgBrandedPrice = parseFloat(med.brandedPriceINR.split('-')[1]) || parseFloat(med.brandedPriceINR);
+                const savings = avgBrandedPrice - med.priceINR;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="p-3 sm:p-4">${med.medicineName}</td>
+                    <td class="p-3 sm:p-4">${med.packSize}</td>
+                    <td class="p-3 sm:p-4">₹${med.priceINR.toFixed(2)}</td>
+                    <td class="p-3 sm:p-4">${med.category}</td>
+                    <td class="p-3 sm:p-4">${med.genericSubstitutes}</td>
+                    <td class="p-3 sm:p-4">${med.brandedPriceINR}</td>
+                    <td class="p-3 sm:p-4 text-green-600">₹${savings.toFixed(2)}</td>
+                    <td class="p-3 sm:p-4">
+                        <button class="add-to-cart bg-green-500 text-white px-2 sm:px-3 py-1 rounded-full hover:bg-green-600 text-xs sm:text-sm" data-medicine-name="${med.medicineName}" data-medicine-price="${med.priceINR}" data-branded-price="${med.brandedPriceINR}">Add to Cart</button>
+                    </td>
+                `;
+                medicineTable.appendChild(row);
+            });
+            attachAddToCartListeners();
+        }
+
+        function attachAddToCartListeners() {
+            const addToCartButtons = document.querySelectorAll('.add-to-cart');
+            addToCartButtons.forEach(button => {
+                button.removeEventListener('click', handleAddToCart);
+                button.addEventListener('click', handleAddToCart);
+            });
+        }
+
+        function handleAddToCart(event) {
+            const button = event.target;
+            try {
+                const medicine = {
+                    medicineName: button.dataset.medicineName,
+                    priceINR: parseFloat(button.dataset.medicinePrice),
+                    brandedPriceINR: button.dataset.brandedPrice
+                };
+                const avgBrandedPrice = parseFloat(medicine.brandedPriceINR.split('-')[1]) || parseFloat(medicine.brandedPriceINR);
+                const cartItem = {
+                    medicineName: medicine.medicineName,
+                    priceINR: medicine.priceINR,
+                    brandedPriceINR: medicine.brandedPriceINR,
+                    savings: avgBrandedPrice - medicine.priceINR,
+                    available: false
+                };
+                if (selectedKendra) {
+                    const availableMedicines = kendraAvailability[selectedKendra.kendraCode] || [];
+                    cartItem.available = availableMedicines.includes(medicine.medicineName);
+                }
+                cart.push(cartItem);
+                updateCart();
+                status.textContent = `${medicine.medicineName} added to cart`;
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+                status.textContent = 'Error adding to cart';
+            }
+        }
+
+        function displayKendras(pinCode) {
+            filteredKendras = kendras.filter(kendra => kendra.pinCode === pinCode);
+            kendraTable.innerHTML = '';
+            resultsKendraSelect.innerHTML = '<option value="">Select a Kendra Location</option>';
+            cartKendraSelect.innerHTML = '<option value="">Select a Kendra</option>';
+            if (filteredKendras.length === 0) {
+                kendraResults.classList.add('hidden');
+                results.classList.add('hidden');
+                status.textContent = 'No Jan Aushadhi Kendras found for this pin code';
+                return;
+            }
+            kendraResults.classList.remove('hidden');
+            filteredKendras.forEach(kendra => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="p-3 sm:p-4">${kendra.name}</td>
+                    <td class="p-3 sm:p-4">${kendra.contact}</td>
+                    <td class="p-3 sm:p-4">${kendra.pinCode}</td>
+                    <td class="p-3 sm:p-4">${kendra.address}</td>
+                    <td class="p-3 sm:p-4">${kendra.kendraCode}</td>
+                    <td class="p-3 sm:p-4">
+                        <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(kendra.address)}" target="_blank" class="text-indigo-600 hover:underline text-xs sm:text-sm">View on Map</a>
+                    </td>
+                `;
+                kendraTable.appendChild(row);
+
+                const option1 = document.createElement('option');
+                option1.value = kendra.kendraCode;
+                option1.textContent = `${kendra.name} (${kendra.kendraCode})`;
+                resultsKendraSelect.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = kendra.kendraCode;
+                option2.textContent = `${kendra.name} (${kendra.kendraCode})`;
+                cartKendraSelect.appendChild(option2);
+            });
+        }
+
+        function updateCart() {
+            cartTable.innerHTML = '';
+            if (cart.length === 0) {
+                cartSection.classList.add('hidden');
+                return;
+            }
+            cartSection.classList.remove('hidden');
+            cart.forEach((item, index) => {
+                let availability = 'Not Checked';
+                if (selectedKendra) {
+                    const availableMedicines = kendraAvailability[selectedKendra.kendraCode] || [];
+                    availability = availableMedicines.includes(item.medicineName) ? 'Available' : 'Not Available';
+                    item.available = availableMedicines.includes(item.medicineName);
+                }
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="p-3 sm:p-4">${item.medicineName}</td>
+                    <td class="p-3 sm:p-4">₹${item.priceINR.toFixed(2)}</td>
+                    <td class="p-3 sm:p-4">${item.brandedPriceINR}</td>
+                    <td class="p-3 sm:p-4 text-green-600">₹${item.savings.toFixed(2)}</td>
+                    <td class="p-3 sm:p-4 ${availability === 'Available' ? 'text-green-600' : 'text-red-600'}">${availability}</td>
+                    <td class="p-3 sm:p-4">
+                        <button class="remove-from-cart text-red-500 hover:text-red-700 text-xs sm:text-sm" data-index="${index}">Remove</button>
+                    </td>
+                `;
+                cartTable.appendChild(row);
+            });
+
+            const total = cart.reduce((sum, item) => sum + item.savings, 0);
+            totalSavings.textContent = `₹${total.toFixed(2)}`;
+
+            document.querySelectorAll('.remove-from-cart').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const index = parseInt(btn.dataset.index);
+                    cart.splice(index, 1);
+                    updateCart();
+                });
+            });
+        }
+
+        function generateCartPDF() {
+            try {
+                if (cart.length === 0) {
+                    status.textContent = 'Cart is empty';
+                    return;
+                }
+                const doc = new jsPDF();
+                doc.setFontSize(20);
+                doc.text('MediLens - Your Medicine Cart', 20, 20);
+                doc.setFontSize(12);
+                doc.text('Date: ' + new Date().toLocaleDateString(), 20, 30);
+
+                let y = 50;
+                doc.setFontSize(14);
+                doc.text('Medicines in Cart:', 20, y);
+                y += 10;
+
+                doc.setFontSize(10);
+                cart.forEach((item, index) => {
+                    const availability = item.available ? 'Available' : selectedKendra ? 'Not Available' : 'Not Checked';
+                    const textLines = [
+                        `${index + 1}. ${item.medicineName}`,
+                        `Generic Price: ₹${item.priceINR.toFixed(2)}`,
+                        `Branded Price: ${item.brandedPriceINR}`,
+                        `Savings: ₹${item.savings.toFixed(2)}`,
+                        `Availability: ${availability}`
+                    ];
+                    textLines.forEach((line, i) => {
+                        doc.text(line, 20, y + (i * 5));
+                    });
+                    y += 30;
+                });
+
+                const total = cart.reduce((sum, item) => sum + item.savings, 0);
+                doc.setFontSize(12);
+                doc.text(`Total Savings: ₹${total.toFixed(2)}`, 20, y);
+                y += 20;
+
+                if (selectedKendra) {
+                    doc.setFontSize(14);
+                    doc.text('Selected Kendra:', 20, y);
+                    y += 10;
+                    doc.setFontSize(10);
+                    doc.text(`Name: ${selectedKendra.name}`, 20, y);
+                    doc.text(`Contact: ${selectedKendra.contact}`, 20, y + 5);
+                    doc.text(`Address: ${selectedKendra.address}`, 20, y + 10);
+                }
+
+                doc.save('MediLens_Cart.pdf');
+                status.textContent = 'Cart PDF downloaded successfully';
+            } catch (error) {
+                console.error('Error generating cart PDF:', error);
+                status.textContent = 'Error generating cart PDF';
+            }
+        }
+
+        function generateKendraPDF() {
+            try {
+                const displayedRows = kendraTable.querySelectorAll('tr');
+                if (displayedRows.length === 0) {
+                    status.textContent = 'No Kendras to download';
+                    return;
+                }
+                const doc = new jsPDF();
+                doc.setFontSize(20);
+                doc.text('MediLens - Nearby Jan Aushadhi Kendras', 20, 20);
+                doc.setFontSize(12);
+                doc.text('Date: ' + new Date().toLocaleDateString(), 20, 30);
+
+                let y = 50;
+                doc.setFontSize(14);
+                doc.text('Kendra Details:', 20, y);
+                y += 10;
+
+                doc.setFontSize(10);
+                Array.from(displayedRows).forEach((row, index) => {
+                    const cells = row.querySelectorAll('td');
+                    const kendra = {
+                        name: cells[0].textContent,
+                        contact: cells[1].textContent,
+                        pinCode: cells[2].textContent,
+                        address: cells[3].textContent,
+                        kendraCode: cells[4].textContent
+                    };
+                    doc.text(`${index + 1}. ${kendra.name}`, 20, y);
+                    doc.text(`Contact: ${kendra.contact}`, 20, y + 5);
+                    doc.text(`Pin Code: ${kendra.pinCode}`, 20, y + 10);
+                    doc.text(`Address: ${kendra.address}`, 20, y + 15);
+                    doc.text(`Kendra Code: ${kendra.kendraCode}`, 20, y + 20);
+                    y += 30;
+                });
+
+                doc.save('MediLens_Kendras.pdf');
+                status.textContent = 'Kendra PDF downloaded successfully';
+            } catch (error) {
+                console.error('Error generating Kendra PDF:', error);
+                status.textContent = 'Error generating Kendra PDF';
+            }
+        }
+    </script>
+</body>
+</html>
